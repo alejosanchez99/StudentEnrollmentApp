@@ -1,28 +1,31 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.OpenApi;
+﻿using AutoMapper;
+using StudentEnrollment.Api.DTOs.Enrollment;
 using StudentEnrollment.Data;
+using StudentEnrollment.Data.Contracts;
+
 namespace StudentEnrollment.Api.Endpoints;
 
 public static class EnrollmentEndpoints
 {
     public static void MapEnrollmentEndpoints(this IEndpointRouteBuilder routes)
     {
-        var group = routes.MapGroup("/api/Enrollment").WithTags(nameof(Enrollment));
+        RouteGroupBuilder group = routes.MapGroup("/api/Enrollment").WithTags(nameof(Enrollment));
 
-        group.MapGet("/", async (StudentEnrollmentDbContext db) =>
+        group.MapGet("/", async (IEnrollmentRepository repository, IMapper mapper) =>
         {
-            return await db.Enrollments.ToListAsync();
+            List<Enrollment> courses = await repository.GetAllAsync();
+
+            return mapper.Map<List<EnrollmentDto>>(courses);
         })
         .WithName("GetAllEnrollments")
         .WithOpenApi()
         .Produces<List<Enrollment>>(StatusCodes.Status200OK);
 
-        group.MapGet("/{id}", async (int id, StudentEnrollmentDbContext db) =>
+        group.MapGet("/{id}", async (int id, IEnrollmentRepository repository, IMapper mapper) =>
         {
-            return await db.Enrollments.AsNoTracking()
-                .FirstOrDefaultAsync(model => model.Id == id)
+            return await repository.GetAsync(id)
                 is Enrollment model
-                    ? Results.Ok(model)
+                    ? Results.Ok(mapper.Map<List<EnrollmentDto>>(model))
                     : Results.NotFound();
         })
         .WithName("GetEnrollmentById")
@@ -30,42 +33,40 @@ public static class EnrollmentEndpoints
         .Produces<Enrollment>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status404NotFound);
 
-        group.MapPut("/{id}", async (int id, Enrollment enrollment, StudentEnrollmentDbContext db) =>
+        group.MapPut("/{id}", async (int id, EnrollmentDto enrollmentDto, IEnrollmentRepository repository, IMapper mapper) =>
         {
-            var affected = await db.Enrollments
-                .Where(model => model.Id == id)
-                .ExecuteUpdateAsync(setters => setters
-                    .SetProperty(m => m.CourseId, enrollment.CourseId)
-                    .SetProperty(m => m.StudentId, enrollment.StudentId)
-                    .SetProperty(m => m.Id, enrollment.Id)
-                    .SetProperty(m => m.CreatedDate, enrollment.CreatedDate)
-                    .SetProperty(m => m.CreatedBy, enrollment.CreatedBy)
-                    .SetProperty(m => m.ModifiedDate, enrollment.ModifiedDate)
-                    .SetProperty(m => m.ModifiedBy, enrollment.ModifiedBy)
-                    );
-            return affected == 1 ? Results.Ok() : Results.NotFound();
+            bool enrollmentExists = await repository.Exists(id);
+
+            if (!enrollmentExists)
+            {
+                return Results.NotFound();
+            }
+
+            Enrollment enrollment = mapper.Map<Enrollment>(enrollmentDto);
+            await repository.UpdateAsync(enrollment);
+
+            return Results.NoContent();
         })
         .WithName("UpdateEnrollment")
         .WithOpenApi()
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status204NoContent);
 
-        group.MapPost("/", async (Enrollment enrollment, StudentEnrollmentDbContext db) =>
+        group.MapPost("/", async (EnrollmentDto enrollmentDto, IEnrollmentRepository repository, IMapper mapper) =>
         {
-            db.Enrollments.Add(enrollment);
-            await db.SaveChangesAsync();
+            Enrollment enrollment = mapper.Map<Enrollment>(enrollmentDto);
+
+            await repository.AddAsync(enrollment);
+
             return Results.Created($"/api/Enrollment/{enrollment.Id}", enrollment);
         })
         .WithName("CreateEnrollment")
         .WithOpenApi()
         .Produces<Enrollment>(StatusCodes.Status201Created);
 
-        group.MapDelete("/{id}", async (int id, StudentEnrollmentDbContext db) =>
+        group.MapDelete("/{id}", async (int id, IEnrollmentRepository repository) =>
         {
-            var affected = await db.Enrollments
-                .Where(model => model.Id == id)
-                .ExecuteDeleteAsync();
-            return affected == 1 ? Results.Ok() : Results.NotFound();
+            return await repository.DeleteAsync(id) ? Results.NoContent() : Results.NotFound();
         })
         .WithName("DeleteEnrollment")
         .WithOpenApi()

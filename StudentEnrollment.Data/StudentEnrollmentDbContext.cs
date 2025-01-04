@@ -5,44 +5,43 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using StudentEnrollment.Data.Configurations;
 
-namespace StudentEnrollment.Data
+namespace StudentEnrollment.Data;
+
+public class StudentEnrollmentDbContext(DbContextOptions<StudentEnrollmentDbContext> options) : IdentityDbContext(options)
 {
-    public class StudentEnrollmentDbContext(DbContextOptions<StudentEnrollmentDbContext> options) : IdentityDbContext(options)
+    protected override void OnModelCreating(ModelBuilder builder)
     {
-        protected override void OnModelCreating(ModelBuilder builder)
-        {
-            base.OnModelCreating(builder);
-            builder.ApplyConfiguration(new CourseConfiguration());
-            builder.ApplyConfiguration(new UserRoleConfiguration());
-        }
-
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            base.OnConfiguring(optionsBuilder);
-            optionsBuilder.ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
-        }
-
-        public DbSet<Course> Courses { get; set; }
-        public DbSet<Student> Students { get; set; }
-        public DbSet<Enrollment> Enrollments { get; set; }
+        base.OnModelCreating(builder);
+        builder.ApplyConfiguration(new CourseConfiguration());
+        builder.ApplyConfiguration(new UserRoleConfiguration());
     }
 
-    public class StudentEnrollmentDbContextFactory : IDesignTimeDbContextFactory<StudentEnrollmentDbContext>
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        public StudentEnrollmentDbContext CreateDbContext(string[] args)
-        {
-            string environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")!;
+        base.OnConfiguring(optionsBuilder);
+        optionsBuilder.ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
+    }
 
-            IConfiguration configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                .Build();
+    public DbSet<Course> Courses { get; set; }
+    public DbSet<Student> Students { get; set; }
+    public DbSet<Enrollment> Enrollments { get; set; }
+}
 
-            DbContextOptionsBuilder<StudentEnrollmentDbContext> optionsBuilder = new();
-            string connectionString = configuration.GetConnectionString("StudentEnrollmentDbConnection")!;
+public class StudentEnrollmentDbContextFactory : IDesignTimeDbContextFactory<StudentEnrollmentDbContext>
+{
+    public StudentEnrollmentDbContext CreateDbContext(string[] args)
+    {
+        string environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")!;
 
-            optionsBuilder.UseSqlServer(connectionString);
-            return new StudentEnrollmentDbContext(optionsBuilder.Options);
-        }
+        IConfiguration configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
+
+        DbContextOptionsBuilder<StudentEnrollmentDbContext> optionsBuilder = new();
+        string connectionString = configuration.GetConnectionString("StudentEnrollmentDbConnection")!;
+
+        optionsBuilder.UseSqlServer(connectionString);
+        return new StudentEnrollmentDbContext(optionsBuilder.Options);
     }
 }
