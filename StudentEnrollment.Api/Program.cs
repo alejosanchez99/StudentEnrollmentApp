@@ -1,13 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using StudentEnrollment.Data;
+using StudentEnrollment.Api.Endpoints;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-string connection = builder.Configuration.GetConnectionString("StudentEnrollmentDbConnection");
+string connection = builder.Configuration.GetConnectionString("StudentEnrollmentDbConnection")!;
 
-builder.Services.AddDbContext<StudentEnrollmentDbContext>(options => {
+builder.Services.AddDbContext<StudentEnrollmentDbContext>(options =>
+{
     options.UseSqlServer(connection);
 });
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 builder.Services.AddCors(options =>
 {
@@ -16,31 +21,64 @@ builder.Services.AddCors(options =>
 
 WebApplication app = builder.Build();
 
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+};
+
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 
 
-string[] summaries =
-[
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-];
-
-app.MapGet("/weatherforecast", () =>
+app.MapGet("/courses", async (StudentEnrollmentDbContext context) =>
 {
-    WeatherForecast[] forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
+    return await context.Courses.ToListAsync();
 });
 
-app.Run();
-
-internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+app.MapGet("/courses/{id}", async (StudentEnrollmentDbContext context, int id) =>
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+    return await context.Courses.FindAsync(id) is Course course ? Results.Ok(course) : Results.NotFound();
+});
+
+app.MapPost("/courses", async (StudentEnrollmentDbContext context, Course course) =>
+{
+    await context.Courses.AddAsync(course);
+    await context.SaveChangesAsync();
+
+    return Results.Created($"/courses/{course.Id}", course);
+});
+
+app.MapPut("/courses/{id}", async (StudentEnrollmentDbContext context, Course course, int id) =>
+{
+    bool courseExists = await context.Courses.AnyAsync(course => course.Id == id);
+    if (!courseExists)
+    {
+        return Results.NotFound();
+    }
+
+    context.Update(course);
+    await context.SaveChangesAsync();
+
+    return Results.NoContent();
+});
+
+app.MapDelete("/courses/{id}", async (StudentEnrollmentDbContext context, int id) =>
+{
+    Course? course = await context.Courses.FindAsync(id);
+    if (course == null)
+    {
+        return Results.NotFound();
+    }
+
+    context.Remove(course);
+    await context.SaveChangesAsync();
+
+    return Results.NoContent();
+});
+
+app.MapStudentEndpoints();
+
+app.MapEnrollmentEndpoints();
+
+app.Run();
