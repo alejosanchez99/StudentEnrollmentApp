@@ -1,4 +1,13 @@
+using Microsoft.EntityFrameworkCore;
+using StudentEnrollment.Data;
+
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+string connection = builder.Configuration.GetConnectionString("StudentEnrollmentDbConnection");
+
+builder.Services.AddDbContext<StudentEnrollmentDbContext>(options => {
+    options.UseSqlServer(connection);
+});
 
 builder.Services.AddCors(options =>
 {
