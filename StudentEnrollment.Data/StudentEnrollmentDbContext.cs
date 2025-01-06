@@ -7,12 +7,14 @@ using StudentEnrollment.Data.Configurations;
 
 namespace StudentEnrollment.Data;
 
-public class StudentEnrollmentDbContext(DbContextOptions<StudentEnrollmentDbContext> options) : IdentityDbContext(options)
+public class StudentEnrollmentDbContext(DbContextOptions<StudentEnrollmentDbContext> options) : IdentityDbContext<SchoolUser>(options)
 {
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
         builder.ApplyConfiguration(new CourseConfiguration());
+        builder.ApplyConfiguration(new RoleConfiguration());
+        builder.ApplyConfiguration(new SchoolUserConfiguration());
         builder.ApplyConfiguration(new UserRoleConfiguration());
     }
 

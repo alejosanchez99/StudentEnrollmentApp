@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using StudentEnrollment.Api.DTOs.Course;
 using StudentEnrollment.Data;
 using StudentEnrollment.Data.Contracts;
@@ -17,6 +18,7 @@ public static class CourseEndpoints
 
             return mapper.Map<List<CourseDto>>(courses);
         })
+        .AllowAnonymous()
         .WithName("GetAllCourses")
         .WithOpenApi()
         .Produces<List<Course>>(StatusCodes.Status200OK);
@@ -28,11 +30,12 @@ public static class CourseEndpoints
                     ? Results.Ok(mapper.Map<CourseDto>(model))
                     : Results.NotFound();
         })
+        .AllowAnonymous()
         .WithName("GetCourseById")
         .WithOpenApi()
         .Produces<Course>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status404NotFound);
-        
+
         group.MapGet("/GetDetails/{id}", async (int id, ICourseRepository repository, IMapper mapper) =>
         {
             return await repository.GetCourseDetails(id)
@@ -45,7 +48,7 @@ public static class CourseEndpoints
         .Produces<Course>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status404NotFound);
 
-        group.MapPut("/{id}", async (int id, CourseDto courseDto, ICourseRepository repository, IMapper mapper) =>
+        group.MapPut("/{id}", [Authorize(Roles = "Administrator")] async (int id, CourseDto courseDto, ICourseRepository repository, IMapper mapper) =>
         {
             bool courseExists = await repository.Exists(id);
 
@@ -64,7 +67,7 @@ public static class CourseEndpoints
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status204NoContent);
 
-        group.MapPost("/", async (CreateCourseDto courseDto, ICourseRepository repository, IMapper mapper) =>
+        group.MapPost("/", [Authorize(Roles = "Administrator")] async (CreateCourseDto courseDto, ICourseRepository repository, IMapper mapper) =>
         {
             Course course = mapper.Map<Course>(courseDto);
 
@@ -76,7 +79,7 @@ public static class CourseEndpoints
         .WithOpenApi()
         .Produces<Course>(StatusCodes.Status201Created);
 
-        group.MapDelete("/{id}", async (int id, ICourseRepository repository) =>
+        group.MapDelete("/{id}", [Authorize(Roles = "Administrator")] async (int id, ICourseRepository repository) =>
         {
             return await repository.DeleteAsync(id) ? Results.NoContent() : Results.NotFound();
         })

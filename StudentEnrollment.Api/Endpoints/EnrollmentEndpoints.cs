@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using StudentEnrollment.Api.DTOs.Enrollment;
 using StudentEnrollment.Data;
 using StudentEnrollment.Data.Contracts;
@@ -33,7 +34,7 @@ public static class EnrollmentEndpoints
         .Produces<Enrollment>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status404NotFound);
 
-        group.MapPut("/{id}", async (int id, EnrollmentDto enrollmentDto, IEnrollmentRepository repository, IMapper mapper) =>
+        group.MapPut("/{id}", [Authorize(Roles = "Administrator")] async (int id, EnrollmentDto enrollmentDto, IEnrollmentRepository repository, IMapper mapper) =>
         {
             bool enrollmentExists = await repository.Exists(id);
 
@@ -52,7 +53,7 @@ public static class EnrollmentEndpoints
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status204NoContent);
 
-        group.MapPost("/", async (EnrollmentDto enrollmentDto, IEnrollmentRepository repository, IMapper mapper) =>
+        group.MapPost("/", [Authorize(Roles = "Administrator")] async (EnrollmentDto enrollmentDto, IEnrollmentRepository repository, IMapper mapper) =>
         {
             Enrollment enrollment = mapper.Map<Enrollment>(enrollmentDto);
 
@@ -64,7 +65,7 @@ public static class EnrollmentEndpoints
         .WithOpenApi()
         .Produces<Enrollment>(StatusCodes.Status201Created);
 
-        group.MapDelete("/{id}", async (int id, IEnrollmentRepository repository) =>
+        group.MapDelete("/{id}", [Authorize(Roles = "Administrator")] async (int id, IEnrollmentRepository repository) =>
         {
             return await repository.DeleteAsync(id) ? Results.NoContent() : Results.NotFound();
         })
