@@ -8,7 +8,8 @@ public class CreateStudentDto
     public string LastName { get; set; }
     public DateTime DateOfBirth { get; set; }
     public string IdNumber { get; set; }
-    public string Picture { get; set; }
+    public byte[] ProfilePicture { get; set; }
+    public string OriginalFileName { get; set; }
 }
 
 public class CreateStudentDtoValidator : AbstractValidator<CreateStudentDto>
@@ -23,5 +24,8 @@ public class CreateStudentDtoValidator : AbstractValidator<CreateStudentDto>
             .NotEmpty();
         RuleFor(createStudent => createStudent.IdNumber)
             .NotEmpty();
+        RuleFor(createStudent => createStudent.OriginalFileName)
+            .NotNull()
+            .When(createStudent => createStudent.ProfilePicture != null);
     }
 }
