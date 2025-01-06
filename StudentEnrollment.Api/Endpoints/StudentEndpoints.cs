@@ -67,7 +67,7 @@ public static class StudentEndpoints
 
             Student student = mapper.Map<Student>(studentDto);
 
-            if(studentDto.ProfilePicture != null)
+            if (studentDto.ProfilePicture != null)
             {
                 student.Picture = fileUpload.UploadStudentFile(studentDto.ProfilePicture, studentDto.OriginalFileName);
             }

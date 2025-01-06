@@ -2,7 +2,6 @@
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Authorization;
-using StudentEnrollment.Api.DTOs.Authentication;
 using StudentEnrollment.Api.DTOs.Course;
 using StudentEnrollment.Data;
 using StudentEnrollment.Data.Contracts;

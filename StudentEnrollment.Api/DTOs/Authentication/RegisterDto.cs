@@ -16,7 +16,7 @@ public class RegisterDtoValidator : AbstractValidator<RegisterDto>
         Include(new LoginDtoValidator());
 
         RuleFor(register => register.FirstName)
-            .NotEmpty();      
+            .NotEmpty();
         RuleFor(register => register.LastName)
             .NotEmpty();
         RuleFor(register => register.DateOfBirth)

@@ -8,7 +8,7 @@ public class FileUpload(IWebHostEnvironment webHostEnvironment, IHttpContextAcce
     public string UploadStudentFile(byte[] file, string imageName)
     {
         string studentFileUrl = string.Empty;
-        
+
         if (file != null)
         {
             string folderPath = "studentpictures";
