@@ -1,5 +1,8 @@
 ﻿using AutoMapper;
+using FluentValidation;
+using FluentValidation.Results;
 using Microsoft.AspNetCore.Authorization;
+using StudentEnrollment.Api.DTOs.Authentication;
 using StudentEnrollment.Api.DTOs.Enrollment;
 using StudentEnrollment.Data;
 using StudentEnrollment.Data.Contracts;
@@ -34,8 +37,14 @@ public static class EnrollmentEndpoints
         .Produces<Enrollment>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status404NotFound);
 
-        group.MapPut("/{id}", [Authorize(Roles = "Administrator")] async (int id, EnrollmentDto enrollmentDto, IEnrollmentRepository repository, IMapper mapper) =>
+        group.MapPut("/{id}", [Authorize(Roles = "Administrator")] async (int id, EnrollmentDto enrollmentDto, IEnrollmentRepository repository, IMapper mapper, IValidator<EnrollmentDto> validator) =>
         {
+            ValidationResult validationResult = await validator.ValidateAsync(enrollmentDto);
+            if (!validationResult.IsValid)
+            {
+                return Results.BadRequest(validationResult.ToDictionary());
+            }
+
             bool enrollmentExists = await repository.Exists(id);
 
             if (!enrollmentExists)
@@ -53,8 +62,14 @@ public static class EnrollmentEndpoints
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status204NoContent);
 
-        group.MapPost("/", [Authorize(Roles = "Administrator")] async (EnrollmentDto enrollmentDto, IEnrollmentRepository repository, IMapper mapper) =>
+        group.MapPost("/", [Authorize(Roles = "Administrator")] async (EnrollmentDto enrollmentDto, IEnrollmentRepository repository, IMapper mapper, IValidator<EnrollmentDto> validator) =>
         {
+            ValidationResult validationResult = await validator.ValidateAsync(enrollmentDto);
+            if (!validationResult.IsValid)
+            {
+                return Results.BadRequest(validationResult.ToDictionary());
+            }
+
             Enrollment enrollment = mapper.Map<Enrollment>(enrollmentDto);
 
             await repository.AddAsync(enrollment);

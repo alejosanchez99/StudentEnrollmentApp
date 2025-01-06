@@ -1,4 +1,6 @@
-﻿namespace StudentEnrollment.Api.DTOs.Enrollment;
+﻿using FluentValidation;
+
+namespace StudentEnrollment.Api.DTOs.Enrollment;
 
 public class CreateEnrollmentDto
 {
@@ -6,3 +8,13 @@ public class CreateEnrollmentDto
     public int StudentId { get; set; }
 }
 
+public class CreateEnrollmentDtoValidator : AbstractValidator<CreateEnrollmentDto>
+{
+    public CreateEnrollmentDtoValidator()
+    {
+        RuleFor(createEnrollment => createEnrollment.CourseId)
+            .NotEmpty();
+        RuleFor(createEnrollment => createEnrollment.StudentId)
+            .NotEmpty();
+    }
+}

@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using FluentValidation;
+using FluentValidation.Results;
+using Microsoft.AspNetCore.Identity;
 using StudentEnrollment.Api.DTOs;
 using StudentEnrollment.Api.DTOs.Authentication;
 using StudentEnrollment.Api.Services;
@@ -11,10 +13,15 @@ public static class AuthenticationEndpoints
     {
         RouteGroupBuilder group = routes.MapGroup("/api").WithTags("Authentication");
 
-        group.MapPost("/login/", async (LoginDto loginDto, IAuthManager authManager) =>
+        group.MapPost("/login/", async (LoginDto loginDto, IAuthManager authManager, IValidator<LoginDto> validator) =>
         {
-            AuthResponseDto response = await authManager.Login(loginDto);
+            ValidationResult validationResult = await validator.ValidateAsync(loginDto);
+            if (!validationResult.IsValid)
+            {
+                return Results.BadRequest(validationResult.ToDictionary());
+            }
 
+            AuthResponseDto response = await authManager.Login(loginDto);
             if (response == null)
             {
                 return Results.Unauthorized();
@@ -29,8 +36,14 @@ public static class AuthenticationEndpoints
         .Produces(StatusCodes.Status401Unauthorized);
 
 
-        group.MapPost("/register/", async (RegisterDto registerDto, IAuthManager authManager) =>
+        group.MapPost("/register/", async (RegisterDto registerDto, IAuthManager authManager, IValidator<RegisterDto> validator) =>
         {
+            ValidationResult validationResult = await validator.ValidateAsync(registerDto);
+            if (!validationResult.IsValid)
+            {
+                return Results.BadRequest(validationResult.ToDictionary());
+            }
+
             IEnumerable<IdentityError> response = await authManager.Register(registerDto);
 
             if (!response.Any())
