@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
 using FluentValidation;
-using FluentValidation.Results;
 using Microsoft.AspNetCore.Authorization;
 using StudentEnrollment.Api.DTOs.Enrollment;
+using StudentEnrollment.Api.Filters;
 using StudentEnrollment.Data;
 using StudentEnrollment.Data.Contracts;
 
@@ -12,7 +12,9 @@ public static class EnrollmentEndpoints
 {
     public static void MapEnrollmentEndpoints(this IEndpointRouteBuilder routes)
     {
-        RouteGroupBuilder group = routes.MapGroup("/api/Enrollment").WithTags(nameof(Enrollment));
+        RouteGroupBuilder group = routes.MapGroup("/api/Enrollment")
+                                        .WithTags(nameof(Enrollment))
+                                        .AddEndpointFilter<LoggingFilter>();
 
         group.MapGet("/", async (IEnrollmentRepository repository, IMapper mapper) =>
         {
@@ -36,14 +38,8 @@ public static class EnrollmentEndpoints
         .Produces<Enrollment>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status404NotFound);
 
-        group.MapPut("/{id}", [Authorize(Roles = "Administrator")] async (int id, EnrollmentDto enrollmentDto, IEnrollmentRepository repository, IMapper mapper, IValidator<EnrollmentDto> validator) =>
+        group.MapPut("/{id}", [Authorize(Roles = "Administrator")] async (int id, EnrollmentDto enrollmentDto, IEnrollmentRepository repository, IMapper mapper) =>
         {
-            ValidationResult validationResult = await validator.ValidateAsync(enrollmentDto);
-            if (!validationResult.IsValid)
-            {
-                return Results.BadRequest(validationResult.ToDictionary());
-            }
-
             bool enrollmentExists = await repository.Exists(id);
 
             if (!enrollmentExists)
@@ -56,25 +52,21 @@ public static class EnrollmentEndpoints
 
             return Results.NoContent();
         })
+        .AddEndpointFilter<ValidationFilter<EnrollmentDto>>()
         .WithName("UpdateEnrollment")
         .WithOpenApi()
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status204NoContent);
 
-        group.MapPost("/", [Authorize(Roles = "Administrator")] async (EnrollmentDto enrollmentDto, IEnrollmentRepository repository, IMapper mapper, IValidator<EnrollmentDto> validator) =>
+        group.MapPost("/", [Authorize(Roles = "Administrator")] async (EnrollmentDto enrollmentDto, IEnrollmentRepository repository, IMapper mapper) =>
         {
-            ValidationResult validationResult = await validator.ValidateAsync(enrollmentDto);
-            if (!validationResult.IsValid)
-            {
-                return Results.BadRequest(validationResult.ToDictionary());
-            }
-
             Enrollment enrollment = mapper.Map<Enrollment>(enrollmentDto);
 
             await repository.AddAsync(enrollment);
 
             return Results.Created($"/api/Enrollment/{enrollment.Id}", enrollment);
         })
+        .AddEndpointFilter<ValidationFilter<CreateEnrollmentDto>>()
         .WithName("CreateEnrollment")
         .WithOpenApi()
         .Produces<Enrollment>(StatusCodes.Status201Created);

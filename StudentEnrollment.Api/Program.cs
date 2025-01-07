@@ -26,8 +26,6 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll", policy => policy.AllowAnyHeader().AllowAnyOrigin().AllowAnyMethod());
 });
 
-builder.Services.AddValidatorsFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
-
 builder.Services.AddIdentityCore<SchoolUser>()
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<StudentEnrollmentDbContext>();
@@ -61,6 +59,7 @@ builder.Services.AddAutoMapper(typeof(MapperConfig));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddValidatorsFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
 
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();

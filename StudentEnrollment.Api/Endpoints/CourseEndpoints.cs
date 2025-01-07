@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
 using FluentValidation;
-using FluentValidation.Results;
 using Microsoft.AspNetCore.Authorization;
 using StudentEnrollment.Api.DTOs.Course;
+using StudentEnrollment.Api.Filters;
 using StudentEnrollment.Data;
 using StudentEnrollment.Data.Contracts;
 
@@ -12,7 +12,9 @@ public static class CourseEndpoints
 {
     public static void MapCourseEndpoints(this IEndpointRouteBuilder routes)
     {
-        RouteGroupBuilder group = routes.MapGroup("/api/Course").WithTags(nameof(Course));
+        RouteGroupBuilder group = routes.MapGroup("/api/Course")
+                                        .WithTags(nameof(Course))
+                                        .AddEndpointFilter<LoggingFilter>();
 
         group.MapGet("/", async (ICourseRepository repository, IMapper mapper) =>
         {
@@ -50,14 +52,8 @@ public static class CourseEndpoints
         .Produces<Course>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status404NotFound);
 
-        group.MapPut("/{id}", [Authorize(Roles = "Administrator")] async (int id, CourseDto courseDto, ICourseRepository repository, IMapper mapper, IValidator<CourseDto> validator) =>
+        group.MapPut("/{id}", [Authorize(Roles = "Administrator")] async (int id, CourseDto courseDto, ICourseRepository repository, IMapper mapper) =>
         {
-            ValidationResult validationResult = await validator.ValidateAsync(courseDto);
-            if (!validationResult.IsValid)
-            {
-                return Results.BadRequest(validationResult.ToDictionary());
-            }
-
             bool courseExists = await repository.Exists(id);
 
             if (!courseExists)
@@ -70,25 +66,21 @@ public static class CourseEndpoints
 
             return Results.NoContent();
         })
+        .AddEndpointFilter<ValidationFilter<CourseDto>>()
         .WithName("UpdateCourse")
         .WithOpenApi()
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status204NoContent);
 
-        group.MapPost("/", [Authorize(Roles = "Administrator")] async (CreateCourseDto courseDto, ICourseRepository repository, IMapper mapper, IValidator<CreateCourseDto> validator) =>
+        group.MapPost("/", [Authorize(Roles = "Administrator")] async (CreateCourseDto courseDto, ICourseRepository repository, IMapper mapper) =>
         {
-            ValidationResult validationResult = await validator.ValidateAsync(courseDto);
-            if (!validationResult.IsValid)
-            {
-                return Results.BadRequest(validationResult.ToDictionary());
-            }
-
             Course course = mapper.Map<Course>(courseDto);
 
             await repository.AddAsync(course);
 
             return Results.Created($"/api/Course/{course.Id}", course);
         })
+        .AddEndpointFilter<ValidationFilter<CreateCourseDto>>()
         .WithName("CreateCourse")
         .WithOpenApi()
         .Produces<Course>(StatusCodes.Status201Created);

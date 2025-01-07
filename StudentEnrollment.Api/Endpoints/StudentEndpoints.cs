@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
 using FluentValidation;
-using FluentValidation.Results;
 using Microsoft.AspNetCore.Authorization;
 using StudentEnrollment.Api.DTOs.Student;
+using StudentEnrollment.Api.Filters;
 using StudentEnrollment.Api.Services;
 using StudentEnrollment.Data;
 using StudentEnrollment.Data.Contracts;
@@ -13,7 +13,9 @@ public static class StudentEndpoints
 {
     public static void MapStudentEndpoints(this IEndpointRouteBuilder routes)
     {
-        RouteGroupBuilder group = routes.MapGroup("/api/Student").WithTags(nameof(Student));
+        RouteGroupBuilder group = routes.MapGroup("/api/Student")
+                                        .WithTags(nameof(Student))
+                                        .AddEndpointFilter<LoggingFilter>();
 
         group.MapGet("/", async (IStudentRepository repository, IMapper mapper) =>
         {
@@ -50,14 +52,8 @@ public static class StudentEndpoints
         .Produces<Student>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status404NotFound);
 
-        group.MapPut("/{id}", [Authorize(Roles = "Administrator")] async (int id, StudentDto studentDto, IStudentRepository repository, IMapper mapper, IValidator<StudentDto> validator, IFileUpload fileUpload) =>
+        group.MapPut("/{id}", [Authorize(Roles = "Administrator")] async (int id, StudentDto studentDto, IStudentRepository repository, IMapper mapper, IFileUpload fileUpload) =>
         {
-            ValidationResult validationResult = await validator.ValidateAsync(studentDto);
-            if (!validationResult.IsValid)
-            {
-                return Results.BadRequest(validationResult.ToDictionary());
-            }
-
             bool studentExists = await repository.Exists(id);
 
             if (!studentExists)
@@ -76,19 +72,14 @@ public static class StudentEndpoints
 
             return Results.NoContent();
         })
+        .AddEndpointFilter<ValidationFilter<StudentDto>>()
         .WithName("UpdateStudent")
         .WithOpenApi()
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status204NoContent);
 
-        group.MapPost("/", [Authorize(Roles = "Administrator")] async (StudentDto studentDto, IStudentRepository repository, IMapper mapper, IValidator<StudentDto> validator, IFileUpload fileUpload) =>
+        group.MapPost("/", [Authorize(Roles = "Administrator")] async (CreateStudentDto studentDto, IStudentRepository repository, IMapper mapper, IFileUpload fileUpload) =>
         {
-            ValidationResult validationResult = await validator.ValidateAsync(studentDto);
-            if (!validationResult.IsValid)
-            {
-                return Results.BadRequest(validationResult.ToDictionary());
-            }
-
             Student student = mapper.Map<Student>(studentDto);
 
             student.Picture = fileUpload.UploadStudentFile(studentDto.ProfilePicture, studentDto.OriginalFileName);
@@ -97,6 +88,7 @@ public static class StudentEndpoints
 
             return Results.Created($"/api/Student/{student.Id}", student);
         })
+        .AddEndpointFilter<ValidationFilter<CreateStudentDto>>()
         .WithName("CreateStudent")
         .WithOpenApi()
         .Produces<Student>(StatusCodes.Status201Created);
